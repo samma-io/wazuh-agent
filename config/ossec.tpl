@@ -64,15 +64,6 @@
     <java_path>wodles/java</java_path>
     <ciscat_path>wodles/ciscat</ciscat_path>
   </wodle>
-<!-- start the ip -->
-<wodle name="command">
-  <disabled>no</disabled>
-  <tag>ingest</tag>
-  <command>bash /var/ossec/wodles/hippo/start.sh</command>
-  <ignore_output>yes</ignore_output>
-  <run_on_start>yes</run_on_start>
-</wodle>
--->
   <!-- Osquery integration -->
   <wodle name="osquery">
     <disabled>yes</disabled>

@@ -78,7 +78,6 @@ services:
 - Input validation and schema enforcement
 - Rate limiting and logging
 - Docker healthcheck and retry logic
-- Systemd-compatible deployment for on-prem deployments
 
 ### Contributions welcome!
 

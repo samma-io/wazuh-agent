@@ -1,8 +1,4 @@
-Here’s an improved and more detailed version of your original Markdown document, while keeping your intent and structure intact. I’ve also added clarification, formatting, grammar fixes, and some optional enhancements.
 
----
-
-```markdown
 # Wazuh Agent in Docker
 
 This Dockerized Wazuh agent is designed **not to monitor its local container**, but instead to act as a **data ingestion proxy** that receives external JSON data via a custom-built API and forwards it to a Wazuh manager. This setup is ideal for forwarding logs, alerts, or structured security data from various sources into your Wazuh ecosystem.
@@ -98,4 +94,3 @@ Feel free to fork and PR improvements or raise issues if you want to enhance the
 
 ---
 
-```

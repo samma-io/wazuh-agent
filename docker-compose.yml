@@ -1,0 +1,16 @@
+services:
+  agent:
+    build: .
+    ports: 
+      - 9000:9000
+    volumes:
+      -  ./code:/var/ossec/wodles/hippo
+    environment:
+      - MANAGER_URL=192.168.1.36 # Manager ip 
+      - MANAGER_PORT=32466  # should go to manager port 1515
+      - SERVER_URL=192.168.1.36 # Worker IP
+      - SERVER_PORT=30851   # should go to worker port 1514
+      - NAME=docker-anything-33 # name update need to be new so it can register
+      - GROUP=default  #The groups need to create in wazuh before you can add then
+      - ENROL_TOKEN=CUSTOM_PASSWORD  # set the token to enroll 
+      

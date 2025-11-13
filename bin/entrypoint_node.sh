@@ -1,8 +1,8 @@
 #!/bin/bash
 
-
 #Generae random agent name
 RANDOM_NAME=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 10)
+
 
 
 export MANAGER_URL="${MANAGER_URL:-localhost}"
@@ -25,8 +25,6 @@ envsubst < "/opt/ossec/ossec.tpl" > "/var/ossec/etc/ossec.conf"
 
 echo "Startin up Wazuh Client"
 /var/ossec/bin/wazuh-control start
-echo "Staring up the ingest api"
-/var/ossec/wodles/api/start.sh &
 echo "Starting Health and Ready"
 cd /web && ./ready.sh &
 

@@ -1,13 +1,12 @@
 FROM debian:trixie-slim
 
 
-LABEL version "4.3.4"
+LABEL version "4.10.0"
 LABEL description "Wazuh Agent"
 
 
-COPY api /var/ossec/wodles/api/
-COPY bin/entrypoint.sh /
-COPY config /opt/ossec
+COPY bin/entrypoint_node.sh /entrypoint.sh
+COPY config/ossec_node.tpl /opt/ossec/ossec.tpl
 
 #Install pre
 RUN apt-get update && apt-get install -y python3 python3-pip  --no-install-recommends && apt-get clean \

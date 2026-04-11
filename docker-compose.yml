@@ -18,8 +18,6 @@ services:
     build:
       dockerfile: Dockerfile.agent
     image: sammascanner/wazuh-agent:regular_0.2
-    ports: 
-      - 9000:9000
     volumes:
       -  ./code:/var/ossec/wodles/code
     environment:

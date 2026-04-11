@@ -1,9 +1,11 @@
-name: Docker Publish
+name: CI / Docker Publish
 
 on:
   push:
     branches: [main]
     tags: ["v*"]
+  pull_request:
+    branches: [main]
   schedule:
     - cron: "0 0 * * 0"
 
@@ -12,8 +14,154 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-manager:
-    name: Build & Push Manager Image
+  # -------------------------------------------------------------------------
+  # Python unit tests
+  # -------------------------------------------------------------------------
+  test-python:
+    name: Python Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+
+      - name: Install test dependencies
+        run: pip install -r requirements-test.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  # -------------------------------------------------------------------------
+  # Docker smoke test — ingest image (Dockerfile)
+  # -------------------------------------------------------------------------
+  test-docker-ingest:
+    name: Docker Smoke Test (ingest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build ingest image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: wazuh-agent:ingest-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Python API module loads inside image
+        run: |
+          docker run --rm wazuh-agent:ingest-test \
+            python3 -c "
+          import sys
+          sys.path.insert(0, '/var/ossec/wodles/api')
+          import api
+          print('API module loaded OK')
+          assert hasattr(api, 'app'), 'FastAPI app not found'
+          assert hasattr(api, 'send_msg'), 'send_msg not found'
+          "
+
+      - name: Start API server
+        run: |
+          docker run -d --name ci-ingest -p 9001:9001 \
+            --entrypoint sh wazuh-agent:ingest-test \
+            -c "cd /var/ossec/wodles/api && uvicorn api:app --host 0.0.0.0 --port 9001"
+
+      - name: Wait for API to be ready
+        run: |
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:9001/docs > /dev/null 2>&1 && echo "API ready" && exit 0
+            echo "Waiting... ($i)"
+            sleep 2
+          done
+          echo "API did not start in time" && exit 1
+
+      - name: Test PUT / — single event
+        run: |
+          RESP=$(curl -sf -X PUT http://localhost:9001/ \
+            -H "Content-Type: application/json" \
+            -d '{"event":"ci-test","source":"github-actions"}')
+          echo "Response: $RESP"
+          echo "$RESP" | grep -q '"reply"'
+
+      - name: Test PUT / — invalid JSON returns error reply
+        run: |
+          RESP=$(curl -sf -X PUT http://localhost:9001/ \
+            -H "Content-Type: application/json" \
+            -d 'not-json')
+          echo "Response: $RESP"
+          echo "$RESP" | grep -q '"reply"'
+
+      - name: Test PUT /batch — array of events
+        run: |
+          RESP=$(curl -sf -X PUT http://localhost:9001/batch \
+            -H "Content-Type: application/json" \
+            -d '[{"event":"a"},{"event":"b"},{"event":"c"}]')
+          echo "Response: $RESP"
+          echo "$RESP" | grep -q '"reply"'
+
+      - name: Test readiness HTTP server (port 9000)
+        run: |
+          docker run -d --name ci-ready -p 9000:9000 \
+            --entrypoint sh wazuh-agent:ingest-test \
+            -c "mkdir -p /web && cd /web && python3 -m http.server 9000"
+          sleep 3
+          # Server should respond (404 for ready.html is expected without Wazuh)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/ready.html)
+          echo "Ready endpoint status: $STATUS"
+          [ "$STATUS" = "404" ] || [ "$STATUS" = "200" ]
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f ci-ingest ci-ready 2>/dev/null || true
+
+  # -------------------------------------------------------------------------
+  # Docker build test — node/regular image (Dockerfile.agent)
+  # -------------------------------------------------------------------------
+  test-docker-node:
+    name: Docker Build Test (node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build node image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.agent
+          push: false
+          load: true
+          tags: wazuh-agent:node-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify wazuh-agent binary is present
+        run: |
+          docker run --rm wazuh-agent:node-test \
+            test -x /var/ossec/bin/wazuh-control && echo "wazuh-control OK"
+
+      - name: Verify readiness script is present and executable
+        run: |
+          docker run --rm wazuh-agent:node-test \
+            test -x /web/ready.sh && echo "ready.sh OK"
+
+  # -------------------------------------------------------------------------
+  # Publish ingest image — only on push/tag/schedule (not PRs)
+  # -------------------------------------------------------------------------
+  publish-ingest:
+    name: Publish Ingest Image
+    needs: [test-python, test-docker-ingest, test-docker-node]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,8 +202,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  build-agent:
-    name: Build & Push Agent Image
+  # -------------------------------------------------------------------------
+  # Publish node image — only on push/tag/schedule (not PRs)
+  # -------------------------------------------------------------------------
+  publish-node:
+    name: Publish Node Image
+    needs: [test-python, test-docker-ingest, test-docker-node]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -184,6 +184,11 @@
     <location>/hostfs/var/log/syslog</location>
   </localfile>
 
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/hostfs/var/log/auth.log</location>
+  </localfile>
+
 </ossec_config>
 
 

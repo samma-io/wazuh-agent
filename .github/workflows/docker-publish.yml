@@ -13,6 +13,9 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# The images' entrypoint starts the agent and tails its logs forever, ignoring
+# any command, so every check below overrides --entrypoint. Without it the step
+# never ends and the job runs until the 6-hour limit cancels it.
 jobs:
   # -------------------------------------------------------------------------
   # Python unit tests
@@ -20,6 +23,7 @@ jobs:
   test-python:
     name: Python Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +45,7 @@ jobs:
   test-docker-ingest:
     name: Docker Smoke Test (ingest)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -59,8 +64,8 @@ jobs:
 
       - name: Verify Python API module loads inside image
         run: |
-          docker run --rm wazuh-agent:ingest-test \
-            python3 -c "
+          docker run --rm --entrypoint python3 wazuh-agent:ingest-test \
+            -c "
           import sys
           sys.path.insert(0, '/var/ossec/wodles/api')
           import api
@@ -129,6 +134,7 @@ jobs:
   test-docker-node:
     name: Docker Build Test (node)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -147,13 +153,13 @@ jobs:
 
       - name: Verify wazuh-agent binary is present
         run: |
-          docker run --rm wazuh-agent:node-test \
-            test -x /var/ossec/bin/wazuh-control && echo "wazuh-control OK"
+          docker run --rm --entrypoint test wazuh-agent:node-test \
+            -x /var/ossec/bin/wazuh-control && echo "wazuh-control OK"
 
       - name: Verify readiness script is present and executable
         run: |
-          docker run --rm wazuh-agent:node-test \
-            test -x /web/ready.sh && echo "ready.sh OK"
+          docker run --rm --entrypoint test wazuh-agent:node-test \
+            -x /web/ready.sh && echo "ready.sh OK"
 
   # -------------------------------------------------------------------------
   # Publish ingest image — only on push/tag/schedule (not PRs)
@@ -163,6 +169,7 @@ jobs:
     needs: [test-python, test-docker-ingest, test-docker-node]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -210,6 +217,7 @@ jobs:
     needs: [test-python, test-docker-ingest, test-docker-node]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write

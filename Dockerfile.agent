@@ -1,8 +1,10 @@
 FROM debian:trixie-slim
 
 
-LABEL version "4.10.0"
-LABEL description "Wazuh Agent"
+# An agent must not be newer than its manager, so keep this at or below the manager's version.
+ARG WAZUH_VERSION=4.14.0-1
+LABEL version="${WAZUH_VERSION}"
+LABEL description="Wazuh Agent"
 
 
 COPY bin/entrypoint_node.sh /entrypoint.sh
@@ -28,7 +30,7 @@ RUN curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyr
 RUN echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | tee -a /etc/apt/sources.list.d/wazuh.list 
 
 
-RUN apt-get update && apt-get install -y wazuh-agent --no-install-recommends && apt-get clean \
+RUN apt-get update && apt-get install -y "wazuh-agent=${WAZUH_VERSION}" --no-install-recommends && apt-get clean \
 && rm -rf /var/lib/apt/lists/*
 
 

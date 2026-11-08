@@ -13,6 +13,9 @@ export NAME="${NAME:-agent}-${RANDOM_NAME}"
 echo $NAME
 export GROUP="${GROUP:-default}"
 export ENROL_TOKEN="${ENROL_TOKEN:-PASSWORD}"
+# osquery module: off unless set to "no". envsubst blanks unset variables,
+# so the default must be set here.
+export OSQUERY_DISABLED="${OSQUERY_DISABLED:-yes}"
 
 echo "Setup register key"
 echo $ENROL_TOKEN > /var/ossec/etc/authd.pass

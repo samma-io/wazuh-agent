@@ -66,6 +66,23 @@ services:
 | `GROUP`        | Wazuh group name (must exist)                                |
 | `ENROL_TOKEN`  | Token for automatic enrollment                               |
 
+### osquery (node image only)
+
+The node image includes osquery (`OSQUERY_VERSION` in `Dockerfile.agent`). Set
+`OSQUERY_DISABLED=no` to turn on the agent's osquery module; the default is
+`yes`. The module runs `osqueryd` with `config/osquery.conf` and sends each
+query result to the manager over the normal agent connection (port 1514), where
+it becomes Wazuh rule 24010 with the result under `data.osquery`.
+
+| Query | Interval | Type |
+|---|---|---|
+| `samma_osquery_info` (version, pid, start time) | 5 min | snapshot: a heartbeat |
+| `samma_listening_ports` (pid, port, protocol, address) | 10 min | differential |
+| `samma_processes` (pid, name, path, uid; no command line) | 1 h | differential |
+
+osquery sees what the container sees: its own processes and network namespace,
+unless the container is run with `--pid=host` / `--network=host`.
+
 ---
 
 ## Production Readiness

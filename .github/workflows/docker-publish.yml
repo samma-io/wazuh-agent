@@ -161,6 +161,12 @@ jobs:
           docker run --rm --entrypoint test wazuh-agent:node-test \
             -x /web/ready.sh && echo "ready.sh OK"
 
+      - name: Verify osquery is installed and its config parses
+        run: |
+          docker run --rm --entrypoint osqueryd wazuh-agent:node-test --version
+          docker run --rm --entrypoint osqueryd wazuh-agent:node-test \
+            --config_path=/etc/osquery/osquery.conf --config_check && echo "osquery.conf OK"
+
   # -------------------------------------------------------------------------
   # Publish ingest image — only on push/tag/schedule (not PRs)
   # -------------------------------------------------------------------------

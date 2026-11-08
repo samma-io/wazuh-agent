@@ -66,7 +66,7 @@
   </wodle>
   <!-- Osquery integration -->
   <wodle name="osquery">
-    <disabled>yes</disabled>
+    <disabled>$OSQUERY_DISABLED</disabled>
     <run_daemon>yes</run_daemon>
     <log_path>/var/log/osquery/osqueryd.results.log</log_path>
     <config_path>/etc/osquery/osquery.conf</config_path>

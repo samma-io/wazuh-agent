@@ -76,7 +76,7 @@ it becomes Wazuh rule 24010 with the result under `data.osquery`.
 
 | Query | Interval | Type |
 |---|---|---|
-| `samma_osquery_info` (version, pid, start time) | 5 min | snapshot: a heartbeat |
+| `samma_osquery_info` (version, pid, start time, current time) | 5 min | heartbeat: one new row per run |
 | `samma_listening_ports` (pid, port, protocol, address) | 10 min | differential |
 | `samma_processes` (pid, name, path, uid; no command line) | 1 h | differential |
 

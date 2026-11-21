@@ -57,6 +57,7 @@ All config is injected at runtime via `envsubst` from `config/ossec.tpl` or `con
 | `NAME` | Unique agent name — must differ per instance |
 | `GROUP` | Wazuh group (must pre-exist in manager) |
 | `ENROL_TOKEN` | Enrollment token / authd password |
+| `OSQUERY_DISABLED` | Node image only: `no` turns on the osquery module (default `yes`; see README) |
 
 If `NAME` is not set, the entrypoint appends a random 10-char suffix automatically.
 
